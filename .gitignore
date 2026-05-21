@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Editeurs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python (si tu rajoutes des scripts de regeneration)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+*.log
+
+# Fichiers temporaires
+*.tmp
+*.bak

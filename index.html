@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stations d'experimentation agricole en France</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+<style>
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f6f3;
+  --bg-tertiary: #ebebeb;
+  --bg-info: #e6f1fb;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #999;
+  --text-info: #185fa5;
+  --border-tertiary: rgba(0,0,0,.1);
+  --border-secondary: rgba(0,0,0,.2);
+  --border-info: rgba(24,95,165,.4);
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1f1f1f;
+    --bg-secondary: #2a2a2a;
+    --bg-tertiary: #161616;
+    --bg-info: #0c447c;
+    --text-primary: #f1f1f1;
+    --text-secondary: #aaa;
+    --text-tertiary: #777;
+    --text-info: #85b7eb;
+    --border-tertiary: rgba(255,255,255,.1);
+    --border-secondary: rgba(255,255,255,.2);
+    --border-info: rgba(133,183,235,.4);
+  }
+}
+* { box-sizing: border-box; }
+body { font-family: var(--font-sans); background: var(--bg-tertiary); color: var(--text-primary); margin: 0; padding: 1.5rem; line-height: 1.5; }
+.container { max-width: 1100px; margin: 0 auto; }
+.header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 1.25rem; }
+.header-text { flex: 1; }
+h1 { font-size: 22px; font-weight: 500; margin: 0 0 .25rem; }
+.subtitle { font-size: 13px; color: var(--text-secondary); }
+.partners-bar { display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius-md); flex-wrap: wrap; }
+.partners-bar-lbl { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
+.partner-chip { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-primary); font-weight: 500; }
+.partner-chip svg { display: block; }
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;margin:0 0 1rem}
+.fc-stat{background:var(--bg-secondary);padding:.7rem .9rem;border-radius:var(--radius-md)}
+.fc-stat-lab{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.fc-stat-val{font-size:22px;font-weight:500;color:var(--text-primary)}
+.fc-filters{background:var(--bg-secondary);padding:.85rem;border-radius:var(--radius-md);margin-bottom:.75rem}
+.fc-frow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end}
+.fc-frow:last-child{margin-bottom:0}
+.fc-flabel{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin:0 0 5px;display:block}
+.fc-fgroup{display:flex;flex-direction:column;flex:1;min-width:200px}
+.fc-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 11px 4px 8px;border-radius:11px;border:1px solid var(--border-tertiary);background:var(--bg-primary);cursor:pointer;line-height:1.5;color:var(--text-secondary);transition:all .12s;margin:0 4px 4px 0}
+.fc-chip svg{flex-shrink:0}
+.fc-chip:hover{border-color:var(--border-secondary);color:var(--text-primary)}
+.fc-chip.on{background:var(--bg-info);color:var(--text-info);border-color:var(--border-info)}
+.fc-search{width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--border-tertiary);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);font-family:inherit}
+.fc-search:focus{outline:none;border-color:var(--border-info);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.fc-reset{font-size:12px;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;white-space:nowrap;font-family:inherit}
+.fc-reset:hover{color:var(--text-primary)}
+#fc-map{height:420px;width:100%;border-radius:var(--radius-md);border:1px solid var(--border-tertiary);margin-bottom:.75rem;background:var(--bg-secondary);position:relative}
+.map-fallback{display:none;align-items:center;justify-content:center;height:100%;text-align:center;padding:2rem;color:var(--text-secondary);font-size:13px;line-height:1.6}
+.map-fallback.show{display:flex}
+.fc-listhdr{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 .5rem;padding:0 .25rem}
+.fc-listhdr-l{font-size:13px;font-weight:500}
+.fc-listhdr-r{font-size:12px;color:var(--text-secondary)}
+/* Bloc "station la plus proche" */
+.nearest-block{background:var(--bg-secondary);padding:.9rem 1rem;border-radius:var(--radius-md);margin-bottom:1rem}
+.nearest-title{font-size:15px;font-weight:500;margin:0 0 .15rem;display:flex;align-items:center;gap:8px}
+.nearest-subtitle{font-size:12px;color:var(--text-secondary);margin-bottom:.75rem}
+.nearest-input-wrap{position:relative}
+.nearest-input{width:100%;padding:9px 12px;font-size:14px;border:1px solid var(--border-tertiary);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);font-family:inherit}
+.nearest-input:focus{outline:none;border-color:var(--border-info);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.nearest-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-primary);border:1px solid var(--border-tertiary);border-radius:var(--radius-md);box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:1000;max-height:240px;overflow-y:auto;display:none}
+.nearest-suggest.show{display:block}
+.nearest-suggest-item{padding:.55rem .85rem;font-size:13px;cursor:pointer;border-bottom:.5px solid var(--border-tertiary);line-height:1.4}
+.nearest-suggest-item:last-child{border-bottom:none}
+.nearest-suggest-item:hover,.nearest-suggest-item.active{background:var(--bg-info);color:var(--text-info)}
+.nearest-suggest-item .label{font-weight:500;color:var(--text-primary)}
+.nearest-suggest-item:hover .label,.nearest-suggest-item.active .label{color:var(--text-info)}
+.nearest-suggest-item .context{font-size:11.5px;color:var(--text-secondary);margin-top:1px}
+.nearest-results{margin-top:.85rem;display:none}
+.nearest-results.show{display:block}
+.nearest-results-hdr{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.nearest-card{display:flex;align-items:flex-start;gap:10px;padding:.55rem .75rem;background:var(--bg-primary);border-radius:var(--radius-md);border:1px solid var(--border-tertiary);margin-bottom:6px;cursor:pointer;transition:background .12s}
+.nearest-card:hover{background:var(--bg-info)}
+.nearest-card-rank{font-size:13px;font-weight:500;color:var(--text-tertiary);min-width:18px;text-align:center;line-height:1.4}
+.nearest-card-body{flex:1;min-width:0}
+.nearest-card-name{font-size:13.5px;font-weight:500;color:var(--text-primary);margin-bottom:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nearest-card-name svg{flex-shrink:0}
+.nearest-card-meta{font-size:11.5px;color:var(--text-secondary)}
+.nearest-card-dist{font-size:12.5px;font-weight:500;color:var(--text-info);white-space:nowrap;align-self:center}
+.nearest-loading{font-size:12px;color:var(--text-secondary);padding:.5rem 0}
+.nearest-error{font-size:12px;color:#c0392b;padding:.5rem 0}
+.fc-list{max-height:520px;overflow-y:auto;border:1px solid var(--border-tertiary);border-radius:var(--radius-md);background:var(--bg-primary)}
+.fc-item{padding:.7rem .9rem;border-bottom:1px solid var(--border-tertiary);cursor:pointer;transition:background .12s}
+.fc-item:last-child{border-bottom:none}
+.fc-item:hover{background:var(--bg-secondary)}
+.fc-item-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:3px}
+.fc-item-n{font-size:14px;font-weight:500;color:var(--text-primary)}
+.fc-item-r{font-size:11px;color:var(--text-secondary);white-space:nowrap}
+.fc-item-m{font-size:12px;color:var(--text-secondary);display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;align-items:center}
+.fc-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 8px 2px 5px;border-radius:9px;line-height:1.5}
+.fc-tag svg{width:12px;height:12px;flex-shrink:0}
+.fc-tag-digi{background:#EEEDFE;color:#3C3489}
+.fc-tag-fxp{background:#E1F5EE;color:#085041}
+.fc-tag-irfel{background:#FAECE7;color:#712B13}
+.fc-tag-fdh{background:#E6F1FB;color:#0C447C}
+.fc-tag-chambre{background:#FAEEDA;color:#633806}
+@media (prefers-color-scheme: dark) {
+.fc-tag-digi{background:#3C3489;color:#CECBF6}
+.fc-tag-fxp{background:#085041;color:#9FE1CB}
+.fc-tag-irfel{background:#712B13;color:#F5C4B3}
+.fc-tag-fdh{background:#0C447C;color:#B5D4F4}
+.fc-tag-chambre{background:#633806;color:#FAC775}
+}
+.fc-item-x{display:none;padding:.6rem 0 .25rem;font-size:12.5px;color:var(--text-secondary);line-height:1.6}
+.fc-item.exp .fc-item-x{display:block}
+.fc-item-x>div{margin-bottom:3px}
+.fc-item-x b{color:var(--text-primary);font-weight:500}
+.fc-item-x a{color:var(--text-info);text-decoration:none}
+.fc-item-x a:hover{text-decoration:underline}
+.fc-empty{padding:2.5rem;text-align:center;font-size:14px;color:var(--text-secondary)}
+.leaflet-popup-content-wrapper{border-radius:var(--radius-md)!important;background:var(--bg-primary)!important;color:var(--text-primary)!important}
+.leaflet-popup-content{font-family:var(--font-sans)!important;font-size:12.5px!important;margin:10px 12px!important;line-height:1.5!important}
+.leaflet-popup-content b{font-weight:500}
+.leaflet-popup-tip{background:var(--bg-primary)!important}
+.leaflet-popup-content a{color:var(--text-info);text-decoration:none}
+footer { font-size: 11px; color: var(--text-tertiary); margin-top: 1.5rem; text-align: center; }
+footer a { color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="header-text">
+<h1>Stations d'experimentation agricole</h1>
+<div class="subtitle">88 stations consolidees - 5 reseaux nationaux</div>
+</div>
+</div>
+
+<div class="partners-bar" style="margin-bottom:1.25rem">
+<span class="partners-bar-lbl">Reseaux partenaires</span>
+<span class="partner-chip"><svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;color:#7F77DD;flex-shrink:0"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 5 9 Q 9 5 13 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="5" cy="9" r="1.3" fill="currentColor"/><circle cx="13" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="5.5" r="1.3" fill="currentColor"/></svg>Digifermes</span>
+<span class="partner-chip"><svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;color:#1D9E75;flex-shrink:0"><rect x="6" y="2" width="6" height="3" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 7 5 L 7 14 Q 7 16 9 16 Q 11 16 11 14 L 11 5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 7 10 L 11 10" stroke="currentColor" stroke-width="1.5"/><circle cx="8.5" cy="13" r="0.8" fill="currentColor"/><circle cx="10" cy="11.5" r="0.5" fill="currentColor"/></svg>F@rmXP</span>
+<span class="partner-chip"><svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;color:#D85A30;flex-shrink:0"><circle cx="9" cy="11" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 9 6 L 9 3 M 9 4 L 11 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="11" cy="2.5" r="0.6" fill="currentColor"/></svg>IRFEL</span>
+<span class="partner-chip"><svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;color:#378ADD;flex-shrink:0"><circle cx="9" cy="9" r="2.5" fill="currentColor"/><circle cx="3" cy="3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="3" cy="15" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 4.5 4.5 L 7 7 M 13.5 4.5 L 11 7 M 4.5 13.5 L 7 11 M 13.5 13.5 L 11 11" stroke="currentColor" stroke-width="1.2"/></svg>Farm Demo Hub</span>
+<span class="partner-chip"><svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;color:#BA7517;flex-shrink:0"><path d="M 2 16 L 16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M 3 16 L 3 8 M 6 16 L 6 8 M 9 16 L 9 8 M 12 16 L 12 8 M 15 16 L 15 8" stroke="currentColor" stroke-width="1.5"/><path d="M 2 8 L 9 3 L 16 8 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Chambres d'agriculture</span>
+</div>
+
+<div class="fc-grid">
+<div class="fc-stat"><div class="fc-stat-lab">Stations affichees</div><div class="fc-stat-val" id="fc-n">0</div></div>
+<div class="fc-stat"><div class="fc-stat-lab">Regions couvertes</div><div class="fc-stat-val" id="fc-r">0</div></div>
+<div class="fc-stat"><div class="fc-stat-lab">Reseaux</div><div class="fc-stat-val" id="fc-nr">0</div></div>
+</div>
+
+<div class="fc-filters">
+<div class="fc-frow">
+<div class="fc-fgroup" style="flex:2;min-width:240px"><label class="fc-flabel">Recherche libre (nom, espece, sujet)</label><input type="text" class="fc-search" id="fc-q" placeholder="ex: noix, bovin, viticulture, methane..."/></div>
+<button class="fc-reset" id="fc-reset">Reinitialiser tous les filtres</button>
+</div>
+<div class="fc-frow"><div class="fc-fgroup"><label class="fc-flabel">Reseaux</label><div id="fc-f-reseau"></div></div></div>
+<div class="fc-frow"><div class="fc-fgroup"><label class="fc-flabel">Filieres</label><div id="fc-f-filiere"></div></div></div>
+<div class="fc-frow"><div class="fc-fgroup"><label class="fc-flabel">Regions</label><div id="fc-f-region"></div></div></div>
+<div class="fc-frow"><div class="fc-fgroup"><label class="fc-flabel">Type de production</label><div id="fc-f-type"></div></div></div>
+</div>
+
+<div id="fc-map"><div class="map-fallback" id="map-fallback">
+<div>Carte indisponible (Leaflet n'a pas pu se charger). Verifie ta connexion ou ouvre la console (F12) pour le detail. La liste des stations ci-dessous reste pleinement fonctionnelle avec les filtres.</div>
+</div></div>
+
+<div class="nearest-block">
+<div class="nearest-title">Quelle est la station de recherche la plus proche de chez moi ?</div>
+<div class="nearest-subtitle">Saisis une adresse, une commune ou un code postal. Le calcul s'applique aux stations actuellement filtrees ci-dessus.</div>
+<div class="nearest-input-wrap">
+<input type="text" class="nearest-input" id="nearest-q" placeholder="ex: 75001 Paris ou 4 rue de la Paix" autocomplete="off"/>
+<div class="nearest-suggest" id="nearest-suggest"></div>
+</div>
+<div class="nearest-results" id="nearest-results"></div>
+</div>
+
+<div class="fc-listhdr">
+<div class="fc-listhdr-l">Liste des stations</div>
+<div class="fc-listhdr-r">Cliquez sur une ligne pour voir le detail et zoomer sur la carte</div>
+</div>
+<div class="fc-list" id="fc-list"></div>
+
+<footer>Sources : APCA / Chambres d'agriculture, Digifermes, F@rmXP, IRFEL, FarmDemo - Carto : <a href="https://www.openstreetmap.org/copyright" target="_blank">(c) OpenStreetMap</a></footer>
+</div>
+
+<script>
+(function loadLeaflet() {
+  const CDNS = [
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
+    "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ];
+  let idx = 0;
+  function tryNext() {
+    if (idx >= CDNS.length) {
+      console.error("Tous les CDN Leaflet ont echoue");
+      document.getElementById("map-fallback").classList.add("show");
+      window.__LEAFLET_FAILED__ = true;
+      initApp();
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = CDNS[idx];
+    s.onload = function() { initApp(); };
+    s.onerror = function() { idx++; tryNext(); };
+    document.head.appendChild(s);
+  }
+  tryNext();
+})();
+
+function initApp() {
+const STATIONS = [{"nom":"ACM (Association Cereales Montagne)","region":"Auvergne-Rhone-Alpes","contact":"Mathias DEROULEDE","tel":"06 86 58 63 56","mail":"mderoulede@haute-loire.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, effluents et phytosanitaires","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau Chambre d'agriculture","adresse":"16 Bd du President Bertrand, 43000 La Puy en Velay","lat":45.036167,"lon":3.883079,"site":"https://haute-loire.chambres-agriculture.fr/sinformer/nos-bulletins-techniques/association-cereales-montagne"},{"nom":"ARDEMA (Association de Recherche et de Developpement en Montagne Aride)","region":"Auvergne-Rhone-Alpes","contact":"Emilie RANNOU","tel":"06 22 42 53 92","mail":"emilie.rannou@drome.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, Maladies et ravageurs","filiere":"Horticulture","especes":"Lavande, Lavandin, PPAM, Fourrages","reseaux":"Reseau Chambre d'agriculture","adresse":"26560 Mevouillon","lat":44.241335,"lon":5.463993,"site":"https://drome.chambres-agriculture.fr/resultats-de-recherche?tx_solr%5Bq%5D=ferme+exp%C3%A9rimentale+ardema"},{"nom":"Association PRISM (Pole de ressources et d'innovation pour les systemes laitiers de montagne)","region":"Auvergne-Rhone-Alpes","contact":"Florence MEYNIER","tel":"04 50 46 20 13","mail":"direction@elevage-poisy.org","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, effluents et phytosanitaires, Sante et bien-etre animal, Autonomie de l'alimentation animale","filiere":"Elevage (bovin)","especes":"Bovins lait, Fourrages","reseaux":"Reseau Chambre d'agriculture","adresse":"845 Rte de l'ecole d'Agriculture, 74330 Poisy","lat":45.925308,"lon":6.068938,"site":"https://elevage-poisy.org/ferme-innovation/"},{"nom":"ASTREDHOR AURA (Ex RATHO)","region":"Auvergne-Rhone-Alpes","contact":"Ardavan SOLEYMANI","tel":"09 72 65 86 62","mail":"ardavan.soleymani@astredhor.fr","type":"Conventionnel","sujets":"Irrigation, Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs, Techniques de culture sous serre","filiere":"Horticulture","especes":"Pepinieres, Cultures ornementales","reseaux":"Reseau Chambre d'agriculture","adresse":"135 Chemin du Finday, 69126 Brindas","lat":45.726864,"lon":4.722803,"site":"https://institut-du-vegetal.fr/"},{"nom":"CERAQ (Centre de ressources pour l'agriculture de qualite et de montagne)","region":"Auvergne-Rhone-Alpes","contact":"Christophe BERTHELOT","tel":"04 79 70 77 77","mail":"accueil@ceraq.fr","type":"Mixte AB et conventionnel","sujets":"Agriculture biologique, Sante et bien-etre animal, Autonomie de l'alimentation animale","filiere":"Elevage (bovin)","especes":"Bovins lait, Fourrages, Fromages","reseaux":"Reseau Chambre d'agriculture","adresse":"Maison de l'agriculture et de la Forˆt\n40 Rue du Terraillet, 73190 Saint-Baldoph","lat":45.535649,"lon":5.959243,"site":"https://ceraq.fr/qui-sommes-nous/"},{"nom":"CTIFL Brindas (Ex SERAIL)","region":"Auvergne-Rhone-Alpes","contact":"Emilie LERAY","tel":"06 98 61 64 96","mail":"emilie.leray@ctifl.fr","type":"Mixte AB et conventionnel","sujets":"Irrigation, Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs , Techniques de culture sous serre","filiere":"Maraichage","especes":"Poireau, Salade, Oignon, Aubergine, Tomate, Maraichage diversifie","reseaux":"Reseau Chambre d'agriculture","adresse":"123 Chemin du Finday, 69126 Brindas","lat":45.727441,"lon":4.726369,"site":"https://www.ctifl.fr/antenne-de-brindas"},{"nom":"Ferme Experimentale d'Etoile-sur-Rhone\n(dont Plateforme TAB = Techniques Alternatives et Biologiques)","region":"Auvergne-Rhone-Alpes","contact":"Clement BARDON","tel":"06 84 27 08 82","mail":"clement.bardon@drome.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Irrigation, Techniques culturales, Essais systemes, Reduction des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs","filiere":"Grandes cultures","especes":"Mais, Tournesol, Ble, Soja, Agroforesterie, Arboriculture : pecher et abricotier","reseaux":"Reseau Chambre d'agriculture","adresse":"2485 route des Pecolets, 26800 Etoile sur Rhone","lat":44.824154,"lon":4.882816,"site":"https://drome.chambres-agriculture.fr/resultats-de-recherche?tx_solr%5Bq%5D=ferme+exp%C3%A9rimentale+etoile\nhttps://drome.chambres-agriculture.fr/resultats-de-recherche?tx_solr%5Bq%5D=plateforme+TAB"},{"nom":"Pole Fromager Massif Central","region":"Auvergne-Rhone-Alpes","contact":"Pauline GERBER","tel":"07 87 37 77 96","mail":"pauline.gerber@pole-fromager-aop-mc.org","type":"Mixte AB et conventionnel","sujets":"Autonomie de l'alimentation animale","filiere":"Elevage (bovin)","especes":"Herbivores laitiers, Fromages AOP","reseaux":"Reseau Chambre d'agriculture","adresse":"20 cote de Reyne, 15000 Aurillac","lat":44.934956,"lon":2.446646,"site":"http://pole-fromager-aop-mc.org/"},{"nom":"SENURA (Station Experimentation Nucicole en Rhone-Alpes)","region":"Auvergne-Rhone-Alpes","contact":"Stephane DUPRE","tel":"06 18 79 87 41","mail":"sdupre@senura.com","type":"Mixte AB et conventionnel","sujets":"Irrigation, Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs","filiere":"Arboriculture","especes":"Noix et fruits a coque","reseaux":"Reseau IRFEL","adresse":"385A route de St Marcellin, 38160 Chatte","lat":45.145447,"lon":5.297786,"site":"https://senura.com/"},{"nom":"SICAREX Beaujolais","region":"Auvergne-Rhone-Alpes","contact":"Sophie PENAVAYRE","tel":"06 82 17 48 72","mail":"sophie.penavayre@vignevin.com","type":"Mixte AB et conventionnel","sujets":"Mixte AB / conventionnel, Reduction des intrants, effluents et phytosanitaires","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"905 Rue du Chateau de l'eclair, 69400 Porte des Pierres Dorees Villefranche","lat":45.975723,"lon":4.662385,"site":"https://www.vignevin.com/contacts/contact-pole-beaujolais-savoie/"},{"nom":"St EX INNOV","region":"Auvergne-Rhone-Alpes","contact":"Yannick JANIN","tel":"04 72 23 85 28 / 06 08 09 78 71","mail":"y.janin@arvalis.fr","type":"Mixte AB et conventionnel","sujets":"Mixte AB / conventionnel, Reduction des intrants, effluents et phytosanitaires","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau Digifermes","adresse":"241 route de Chapulay, 69330 Pusignan","lat":45.744625,"lon":5.071907,"site":"https://www.arvalis.fr/evenements/regions/auvergne-rhone-alpes"},{"nom":"Station de Saint-Laurent-d'Agny","region":"Auvergne-Rhone-Alpes","contact":"Christophe GRATADOUR","tel":"06 75 09 23 30","mail":"christophe.gratadour@rhone.chambagri.fr","type":"Conventionnel","sujets":"Materiel vegetal, Itineraires techniques, Irrigation","filiere":"Arboriculture","especes":"Cerisier, Pˆche de vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"Chambre d'agriculture du Rhone (Antenne de Brignais) \n234 rue du General De Gaulle, 69530 Brignais","lat":45.660221,"lon":4.751627,"site":"https://rhone.chambres-agriculture.fr/"},{"nom":"Station de Vernoux","region":"Auvergne-Rhone-Alpes","contact":"Helina DEPLAUDE","tel":"07 84 10 78 29","mail":"helina.deplaude@ardeche.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Materiel vegetal, Itineraires techniques, Maladies et ravageurs","filiere":"Arboriculture","especes":"Chataignier","reseaux":"Reseau Chambre d'agriculture","adresse":"Chambre d'agriculture de l'Ardeche\n4 Avenue de l'Europe Unie, BP 114 07001 Privas Cedex","lat":44.733494,"lon":4.600301,"site":"https://ardeche.chambres-agriculture.fr/"},{"nom":"Station experimentale Caprine du Pradel (Association CAP PRADEL)","region":"Auvergne-Rhone-Alpes","contact":"Philippe THOREY","tel":"04 75 36 74 37","mail":"philippe.thorey@idele.fr","type":"Mixte AB et conventionnel","sujets":"Sante et bien-etre animal, Autonomie de l'alimentation animale","filiere":"Elevage (caprin)","especes":"Chevres, Fromage Picodon","reseaux":"Reseau Chambre d'agriculture","adresse":"Domaine Olivier de serres, 07170 Mirabel","lat":44.580795,"lon":4.499099,"site":"https://idele.fr/cappradel/"},{"nom":"Verger experimental de Poisy","region":"Auvergne-Rhone-Alpes","contact":"Fanny CAMELS","tel":"06 89 84 72 12","mail":"verger-de-poisy@orange.fr","type":"Mixte AB et conventionnel","sujets":"Irrigation, Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs","filiere":"Arboriculture","especes":"Pommier, Poirier","reseaux":"Reseau Chambre d'agriculture","adresse":"859 Rte de l'ecole d'Agriculture, 74330 Poisy","lat":45.925308,"lon":6.068938,"site":"https://www.vergerdepoisy.fr/experimentation/"},{"nom":"EPLEFPA Fontaines Sud-Bourgogne","region":"Bourgogne-Franche-Comte","contact":"Denis CHAPUIS","tel":"06 75 72 76 37","mail":"denis.chapuis@sl.chambagri.fr","type":"Conventionnel","sujets":"","filiere":"Elevage (bovin)","especes":"Bovins lait","reseaux":"Reseau Chambre d'agriculture","adresse":"10 La Platiere, 71150 Fontaines","lat":46.859905,"lon":4.771966,"site":"https://www.epl-fontaines.fr/"},{"nom":"Ferm'Inov (Ferme experimentale de Jalogny)","region":"Bourgogne-Franche-Comte","contact":"Adrien DEMARBAIX","tel":"06 75 92 87 00","mail":"adrien.demarbaix@sl.chambagri.fr","type":"Conventionnel","sujets":"Conduite de troupeaux, Alimentation, Numerique et equipements, Environnement","filiere":"Elevage (bovin)","especes":"Bovins viande","reseaux":"Reseau F@rmXP\nReseau Digifermes","adresse":"La Prairie, 71250 Jalogny","lat":46.402926,"lon":4.652822,"site":"https://www.farmxp.fr/nos-fermes/ferme-de-jalogny"},{"nom":"Plateforme experimentale d'Aluze (Vinipole Sud-Bourgogne)","region":"Bourgogne-Franche-Comte","contact":"Benjamin ALBAN","tel":"06 86 98 01 90","mail":"benjamin.alban@sl.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Materiel vegetal (varietes, RESDUR, GreffBourgogne Aligote, Cepinnov, collection d'Aligote), Densite de plantation, Materiel electrique bas carbone","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Digifermes","adresse":"Rue du Moulin, 71510 Aluze","lat":46.849387,"lon":4.686847,"site":"https://www.vinipole-sud-bourgogne.fr/"},{"nom":"Plateforme experimentale de la Chambre d'agriculture de Cote d'Or","region":"Bourgogne-Franche-Comte","contact":"Jeremie BLAS","tel":"06 77 33 13 83","mail":"jeremie.blas@cote-dor.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Fertilite des sols, Biochar, Digestats, biocontrole, biosolutions, Impact des haies, ITK changement climatique,  Autonomie ferti AB","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau Chambre d'agriculture","adresse":"Chambre d'agriculture de Cote-d'Or\nRue des Coulots, 21110 Breteniere","lat":47.233971,"lon":5.109371,"site":"https://cote-dor.chambres-agriculture.fr/"},{"nom":"Plateforme experimentale de Lugny (Vinipole Sud-Bourgogne)","region":"Bourgogne-Franche-Comte","contact":"Benjamin ALBAN","tel":"06 86 98 01 90","mail":"benjamin.alban@sl.chambagri.fr","type":"Conventionnel","sujets":"VITAF (Vitiforesterie en intra-parcellaire et pourtours), Materiel vegetal (varietes, GreffBourgogne et collection de Chardonnay), Reduction des intrants (biocontroles et biostimulants), Densite de plantation, Materiel electrique bas carbone (robots)","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Digifermes","adresse":"538 Rue de Saint-Pierre, 71260 Lugny","lat":46.478083,"lon":4.809954,"site":"https://www.vinipole-sud-bourgogne.fr/"},{"nom":"Plateforme experimentale de Rully (Vinipole Sud-Bourgogne)","region":"Bourgogne-Franche-Comte","contact":"Benjamin ALBAN","tel":"06 86 98 01 90","mail":"benjamin.alban@sl.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Evaluation de systemes de lutte contre les aleas climatiques (filets echaudage et grele, fils chauffants gel), Tour a flux (MOCCAA), Materiel vegetal (collections de Pinot et Chardonnay, GreffBourgogne Pinot), Densite, Reduction des intrants, Materiel electrique bas carbone","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Digifermes","adresse":"Chemin de la Chapelle, 71150 Rully","lat":46.867115,"lon":4.744171,"site":"https://www.vinipole-sud-bourgogne.fr/"},{"nom":"Pole Regional Ovin de Charolles","region":"Bourgogne-Franche-Comte","contact":"Laurent SOLAS","tel":"06 87 73 81 87","mail":"laurent.solas@sl.chambagri.fr","type":"Conventionnel","sujets":"Suivi de la pousse de l'herbe sous les panneaux photovoltiques, Influence de la mixite ovin / bovin, Etude de la mise en place d'un systeme ovin / bovin avec la conduite d'une troupe ovine en plein air associee a de la finition de bovins","filiere":"Elevage (ovin et bovin)","especes":"Ovins viande / Finition Bovin viande","reseaux":"Reseau Chambre d'agriculture","adresse":"Chambre d'agriculture de Saone-et-Loire\n59 rue du 19 mars 1962, 71000 Macon","lat":46.3145297,"lon":4.8376562,"site":"https://saoneetloire.chambres-agriculture.fr/sinformer/innover/innovin"},{"nom":"Vinipole Sud-Bourgogne","region":"Bourgogne-Franche-Comte","contact":"Benjamin ALBAN","tel":"06 86 98 01 90","mail":"benjamin.alban@sl.chambagri.fr","type":"Conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Itineraires techniques, Maladies et ravageurs","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Digifermes","adresse":"Les Poncetys, 71960 Davaye","lat":46.307457,"lon":4.737966,"site":"https://www.vinipole-sud-bourgogne.fr/"},{"nom":"CIRBEEF (Centre d'Innovation et de Recherche sur la production de viande rouge issue du troupeau laitier)","region":"Bretagne","contact":"Frederic GUY","tel":"07 63 43 28 34","mail":"frederic.guy@idele.fr","type":"Conventionnel","sujets":"Creer de la valeur ajoutee en repondant aux  marches, a partir de veaux laitiers purs ou croises viande, Optimiser l engraissement des vaches de reforme laitieres ou des jeunes bovins, Tester les ressources fourrageres de demain en lien avec les enjeux climatiques, Evaluer l interet et developper des solutions numeriques au service des elevages","filiere":"Elevage (bovin)","especes":"Bovins viande","reseaux":"Reseau F@rmXP\nReseau Digifermes","adresse":"La Touche es Bouvier, 56430 Mauron","lat":48.06662,"lon":-2.28134,"site":"https://www.farmxp.fr/nos-fermes/ferme-de-mauron"},{"nom":"Station experimentale de Kerguehennec","region":"Bretagne","contact":"Denis LE BOSSE","tel":"02 97 46 73 08","mail":"denis.lebosse@bretagne.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Essais systemes, Reductions des intrants phytosanitaires, Transferts, Proteagineux, Legumineuses a graines, Agriculture de precision, Legumes de transformation, Gestion de l'eau et irrigation","filiere":"Grandes cultures","especes":"Grandes cultures, Legumes de transformation, Legumineuses a graines","reseaux":"Reseau Chambre d'agriculture","adresse":"Kerguehennec, 56500 Bignan","lat":47.882421,"lon":-2.729801,"site":"https://bretagne.chambres-agriculture.fr/ma-chambre/innovation-rd/equipes-outils-de-recherche/station-experimentale-de-kerguehennec"},{"nom":"Station experimentale du Cate","region":"Bretagne","contact":"Damien PENGUILLY","tel":"02 98 69 22 80","mail":"secretariat@cate.bzh","type":"Conventionnel","sujets":"Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite et performance des productions, Systemes, Couverts vegetaux","filiere":"Maraichage","especes":"Choux, Artichaut, Salade, Echalote, Oignon, Courges, Tomate, Fraise","reseaux":"Reseau IRFEL","adresse":"Vezendoquet, 29250 St Pol de Leon","lat":48.658258,"lon":-3.986525,"site":"www.station-cate.fr"},{"nom":"Station experimentale laitiere de Trevarez","region":"Bretagne","contact":"Melaine SAUVEE","tel":"02 98 52 48 08","mail":"melaine.sauvee@bretagne.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Essais systemes, Reductions des intrants, effluents et phytosanitaires, Energie, Itineraires techniques, Fourrages, Prairies, Agroforesterie, Agrivoltaisme, Photovoltaique sur batiment, Sante et bien-etre animal, Batiments, Autonomie de l'alimentation animale, Qualite et performance des productions, GES, Climat, Carbone, Methane enterique, Travail","filiere":"Elevage (bovin)","especes":"Vaches laitieres Prim'Holstein en conventionnel\nVaches croisees 3 voies Prim'Holstein + Normandes + Jersiaises en AB","reseaux":"Reseau F@rmXP","adresse":"Trevarez, 29520 St Goazec","lat":48.156453,"lon":-3.809125,"site":"https://bretagne.chambres-agriculture.fr/ma-chambre/innovation-rd/equipes-outils-de-recherche/station-experimentale-de-trevarez"},{"nom":"Station experimentale maraichere d'Auray","region":"Bretagne","contact":"Ma‰t LE LAN","tel":"02 97 46 30 80","mail":"maet.lelan@bretagne.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Systemes bas niveau d'intrants, Nouvelles technologies, Materiaux biodegradables, Ergonomie et conditions de travail, Conservation post-recolte","filiere":"Maraichage","especes":"Maraichage diversifie, Fruits rouges, Agrumes","reseaux":"Reseau IRFEL","adresse":"Route du Bono, 56400 Auray","lat":47.659448,"lon":-2.96963,"site":"https://bretagne.chambres-agriculture.fr/ma-chambre/innovation-rd/equipes-outils-de-recherche/station-experimentale-dauray"},{"nom":"Station experimentale porcine de Crecom","region":"Bretagne","contact":"Claudie GUYOMARCH","tel":"02 96 29 53 57","mail":"claudie.guyomarch@bretagne.chambagri.fr","type":"Conventionnel","sujets":"Energie, GES, NH3, Particules fines, Climat, Essais systemes porc+cultures, Reduction des intrants, effluents et phytosanitaires, Autonomie proteique, Itineraires techniques, Sante et bien-etre animal, Alimentation animale, Batiments, Autonomie de l'alimentation animale, Qualite et performance des productions, Travail, Photovoltaisme sur batiments, Tests sur systemes paille, Caillebotis integral et alternatifs avec courettes","filiere":"Elevage (porcin)","especes":"Porcs : cochettes, truies gestantes et allaitantes, porcelets sous la mere et en PS, porcs en engraissement","reseaux":"Reseau Chambre d'agriculture","adresse":"Crecom, 22480 St Nicolas du Pelem","lat":48.317444,"lon":-3.208458,"site":"https://bretagne.chambres-agriculture.fr/ma-chambre/innovation-rd/equipes-outils-de-recherche/station-experimentale-de-crecom"},{"nom":"Terre d'essais","region":"Bretagne","contact":"Thibault NORDEY","tel":"02 96 22 19 40","mail":"syntec.station@wanadoo.fr","type":"Agriculture biologique","sujets":"Materiel vegetal, Protection des cultures, Systemes, Protection Biologique Integree, Fertilisation, Conduites culturales","filiere":"Maraichage","especes":"Chou-fleur, Echalote, Artichaut, Tomate, Concombre, Fraise","reseaux":"Reseau IRFEL","adresse":"La Ferme du Glazic, 22740 Pleumeur-Gautier","lat":48.803671,"lon":-3.150479,"site":"www.terredessais.fr"},{"nom":"CVETMO (Centre de Vulgarisation et d'Etudes techniques Maraicheres de la region d'Orleans)","region":"Centre-Val de Loire","contact":"Emilie MAILLY","tel":"06 08 71 63 43","mail":"emilie.mailly@chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Support de culture, Varietes, Sanitaire, Climat, Biocontrole, Fertirrigation, Materiel","filiere":"Maraichage","especes":"Concombre, Poivron, Aubergine, Tomate, Salade","reseaux":"Reseau IRFEL","adresse":"196 rue des Montaudins, 45560 St Denis en Val","lat":47.890273,"lon":1.990955,"site":"https://www.cvetmo.fr/activites/"},{"nom":"Ferme experimentale des Bordes","region":"Centre-Val de Loire","contact":"Antoine BUTEAU","tel":"02 54 36 21 68","mail":"a.buteau@arvalis.fr","type":"Mixte AB et conventionnel","sujets":"Essais systemes, Reductions des intrants, effluents et phytosanitaires, Autonomie de l'alimentation animale","filiere":"Elevage (bovin)","especes":"Bovins viande, Fourrages","reseaux":"Reseau FARM DEMO HUB","adresse":"Les Bordes, 36120 Jeu les Bois","lat":46.65814,"lon":1.799711,"site":"https://www.arvalis.fr/l-institut/nous-connaitre/stations-laboratoires-arvalis/ferme-experimentale-bordes"},{"nom":"IFV (Institut Fran‡ais de la Vigne et du Vin)","region":"Centre-Val de Loire","contact":"Melissa MERDY","tel":"02 47 23 45 18","mail":"melissa.merdy@vignevin.com","type":"Conventionnel","sujets":"Changement climatique, Gestion du sol, Agroecologie, Gestion de l'eau, Hygiene et process oenologique, Microbiologie, Reduction des intrants, Biocontrole, Biostimulants et physiologie de la vigne","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"509 Avenue de Chanteloup, 37400 Amboise","lat":47.39936,"lon":0.974782,"site":"https://www.vignevin.com/"},{"nom":"Station de Miermaigne","region":"Centre-Val de Loire","contact":"Patricia HUET","tel":"06 26 01 49 58","mail":"p.huet@eure-et-loir.chambagri.fr","type":"Conventionnel","sujets":"Essais systemes, Reduction des intrants, Adaptation au changement climatique, Cultures de diversification, Impact des elements paysagers sur la biodiversite, Presence d'une ZTHA (zone tampon humide artificielle) en sortie du reseau de drainage, Suivi des flux de nitrates et de produits phytosanitaires, Etude de l'abattement des teneurs en nitrates et produits phytosanitaires en fonction du temps de sejour dans la ZTHA, Test d'outils connectes, Membre du reseau DEPHY Ferme","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau Digifermes","adresse":"La Grand'Cour des Bois, 28480 Miermaigne","lat":48.246416,"lon":0.99302,"site":"https://eure-et-loir.chambres-agriculture.fr/innover/ferme-experimentale-de-miermaigne"},{"nom":"VINOPoLE Centre Val de Loire","region":"Centre-Val de Loire","contact":"Melissa MERDY","tel":"02 47 23 45 18","mail":"melissa.merdy@vignevin.com","type":"Conventionnel","sujets":"Plate-forme d echanges pluri disciplinaires qui regroupe les acteurs de la filiere vitivinicole, le monde de la recherche, des entreprises privees et les institutionnels pour favoriser l emergence de projets ® grand futur","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"509 Avenue de Chanteloup, 37400 Amboise","lat":47.39936,"lon":0.974782,"site":"http://www.vinopole-cvdl.com/"},{"nom":"AREFLEC (Association de Recherche et d'Experimentation sur les Fruits et Legumes en Corse)","region":"Corse","contact":"Marie-Madeleine OTTOMANI","tel":"04 95 38 99 00","mail":"contact@areflec.fr","type":"Agriculture biologique","sujets":"Protection des cultures (protection raisonnee, lutte biologique, experimentations sur les produits phytosanitaires...), Mise au point d'itineraires techniques (mode de conduite, calendrier cultural, eclaircissage, taille), Materiel vegetal (etude du comportement des varietes dans les conditions pedoclimatiques locales), Modes de productions biologiques, Etude des fruits en post-recolte, Production d'insectes auxiliaires, Production de materiel vegetal certifie","filiere":"Arboriculture","especes":"Agrumes, Oliviers, Amandiers, Kiwi","reseaux":"Reseau IRFEL","adresse":"Corsic'Agropole, 20230 San-Giuliano","lat":42.281363,"lon":9.533974,"site":"https://areflec.fr/"},{"nom":"Ferme experimentale de la Bouzule","region":"Grand Est","contact":"Frederic PIERLOT","tel":"06 24 97 47 35","mail":"frderic.pierlot@grandest.chambagri.fr","type":"Conventionnel","sujets":"Suivi de la qualite de l'eau sous parcelles drainees, Suivi de la ZTHA (zone tampon humide artificielle)","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau Chambre d'agriculture","adresse":"Lieu dit LaBouzule, 54280 Laneuvelotte","lat":48.739839,"lon":6.322206,"site":"https://ensaia.univ-lorraine.fr/fr/content/la-ferme-durable-de-demain"},{"nom":"Ferme experimentale de l'ALPA (Haroue)","region":"Grand Est","contact":"Clement MUNIER","tel":"06 26 09 82 72","mail":"clement.munier@grandest.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Essais systemes : tres forte reduction d'intrant (IFT max de 1 et -50% d'azote mineral) et agriculture biologique de conservation (ABC), Suivi qualite de l'eau","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau FARM DEMO HUB","adresse":"2, Les Noires Terres, 54740 Haroue","lat":48.477804,"lon":6.176172,"site":"https://grandest.chambres-agriculture.fr/produire-filieres/productions-vegetales/experimentation-systeme-de-grandes-cultures"},{"nom":"GIE Vignoble experimental d'Essoyes","region":"Grand Est","contact":"Dimitrios SKOUTELAS","tel":"03 25 38 26 98","mail":"dimitrios.skoutelas@aube.chambagri.fr","type":"Agriculture biologique","sujets":"Energie, Technique culturale, Essais systemes, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Maladies et ravageurs","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"Chambre d'agriculture de l'Aube\nCentre Agro Viticole, avenue Bernard Pieds, 10110 Bar Sur Seine","lat":48.111589,"lon":4.386751,"site":""},{"nom":"Planete Legumes","region":"Grand Est","contact":"Fabien DIGEL","tel":"03 89 20 98 04","mail":"f.digel@alsace.chambagri.fr / m.bintz@planete-legumes.fr","type":"Agriculture biologique","sujets":"Irrigation, Reductions des intrants, effluents et phytosanitaires, Qualite et performance des productions","filiere":"Maraichage","especes":"Carotte, Radis, Navet, Tomate, Poireau, Salade, Asperge, Chou, Pomme de terre, Poivron, Epinard","reseaux":"Reseau IRFEL\nReseau FARM DEMO HUB","adresse":"11 rue Jean Mermoz, 68127 Sainte-Croix-en-Plaine","lat":48.021592,"lon":7.381383,"site":"http://www.planete-legumes.fr/"},{"nom":"TerraLab (ex Ferme112)","region":"Grand Est","contact":"Carole LEVERRIER / Clement WARNIER","tel":"03 26 64 08 13","mail":"carole.leverrier@terrasolis.fr / clement.warnier@terrasolis.fr","type":"Conventionnel","sujets":"Energie, Essais systemes, Reductions des intrants, effluants et phytosanitaires, Qualite et performance des productions","filiere":"Grandes cultures","especes":"Grandes cultures, CIVE","reseaux":"Reseau Digifermes\nReseau FARM DEMO HUB","adresse":"Rte de Betheny, 51450 Betheny","lat":49.30839,"lon":4.059713,"site":"https://www.terrasolis.fr/"},{"nom":"VEREXAL (Verger Experimental d'Alsace)","region":"Grand Est","contact":"Fabien DIGEL","tel":"03 88 19 17 10","mail":"fabien.digel@alsace.chambagri.fr / verexal.obernai@gmail.com","type":"Conventionnel","sujets":"Technique culturale, Materiel vegetal, Itineraires techniques, Qualite et performance des productions","filiere":"Arboriculture","especes":"Prune, Poire, Pomme, Fruits rouges, Pˆche, Abricot","reseaux":"Reseau FARM DEMO HUB","adresse":"VEREXALZI Nord - 4 rue Adolphe Mohler, 67210 Obernai","lat":48.46997,"lon":7.506119,"site":"https://www.irfel.fr/fiche/verexal/"},{"nom":"Ferme agroecologique 3.0","region":"Hauts-de-France","contact":"Matthieu PREUDHOMME","tel":"03 22 33 69 00","mail":"ferme3.0@somme.chambagri.fr","type":"Conventionnel","sujets":"Techniques culturales, Essais systemes, Reduction des intrants, effluents et phytosanitaires, Maladies et ravageurs","filiere":"Grandes cultures","especes":"Cereales, Legumineuses","reseaux":"Reseau Digifermes\nReseau FARM DEMO HUB","adresse":"9 rue de l'eglise, 80200 Aizecourt-le-Haut","lat":49.96475,"lon":2.983275,"site":"https://digifermes.com/blog/axes-de-travail/ferme-agroecologie-3-0-80/#:~:text=La%20DIGIFERME%C2%AE%EF%B8%8F%20Ferme%20Agro%C3%A9cologie,de%20terre%2C%20colza%20et%20l%C3%A9gumes."},{"nom":"Plateforme Regionale de Catenoy","region":"Hauts-de-France","contact":"Virginie METERY","tel":"03 22 33 69 25","mail":"v.metery@hautsdefrance.chambagri.fr","type":"Conventionnel","sujets":"Energie, Techniques culturales, Reduction des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Autonomie de l'alimentation animale, Maladies et ravageurs","filiere":"Grandes cultures","especes":"Cereales, Betteraves, Legumineuses, Oleoproteagineux, Fourrages, CIVE","reseaux":"Reseau Chambre d'agriculture","adresse":"19 bis rue Alexandre Dumas, 80000 Amiens","lat":49.391818,"lon":2.518595,"site":"https://hautsdefrance.chambre-agriculture.fr/plateforme-catenoy/"},{"nom":"Pole Legumes Region Nord","region":"Hauts-de-France","contact":"Marie DELBECQUE","tel":"03 21 52 48 36","mail":"marie.delbecque@npdc.chambagri.fr","type":"Conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Maladies et ravageurs","filiere":"Maraichage","especes":"Poireau, Oignon, Chou, Salade, Celeri","reseaux":"Reseau IRFEL","adresse":"Pole Legumes Nord - Route d'Estaires, 62840 Lorgies","lat":50.576013,"lon":2.77471,"site":"https://cite-agriculture.fr/organismes/pole-legumes/"},{"nom":"Ferme experimentale de la Blanche Maison","region":"Normandie","contact":"Marie PLESSY","tel":"07 76 95 12 62 / 03 29 83 30 01","mail":"m.plessy@blanche-maison.fr","type":"Conventionnel","sujets":"Essais systemes, Energie, Qualite et performance des productions","filiere":"Elevage (bovin)","especes":"Vaches laitieres Normandes","reseaux":"Reseau F@rmXP\nReseau Digifermes","adresse":"La Blanche Maison, 50880 Pont-Hebert","lat":49.181385,"lon":-1.141034,"site":"https://www.farmxp.fr/nos-fermes/ferme-de-la-blanche-maison"},{"nom":"ACPEL (Association Charentes-Poitou d'Experimentation Legumiere)","region":"Nouvelle-Aquitaine","contact":"Jean-Michel LHOTE / Benoit VOELTZEL","tel":"05 46 74 43 30","mail":"acpel@orange.fr / jml.acpel@orange.fr / benoit.voeltzel@charente-maritime.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Qualite et performance des productions, Maladies et ravageurs","filiere":"Maraichage","especes":"Melon, Pomme de terre, Celeri rave, Plantes de services","reseaux":"Reseau IRFEL","adresse":"Le Petit Chadignac, 17100 Saintes","lat":45.721281,"lon":-0.663772,"site":"https://www.acpel.fr"},{"nom":"ADIDA (Association Departementale pour l'Information et le Developpement Agricole)","region":"Nouvelle-Aquitaine","contact":"Karine BARRIERE","tel":"07 63 45 23 42","mail":"k.barriere@correze.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Itineraires techniques, Qualite et performances des productions","filiere":"Maraichage","especes":"Fruits rouges","reseaux":"Reseau Chambre d'agriculture","adresse":"Moulin de Murat, 19130 Voutezac","lat":45.279522,"lon":1.417553,"site":"https://adida19.odoo.com/"},{"nom":"CIIRPO (Centre Interregional d'Information et de Recherche en Production Ovine)","region":"Nouvelle-Aquitaine","contact":"Denis GAUTIER","tel":"05 55 00 63 72","mail":"denis.gautier@idele.fr","type":"Conventionnel","sujets":"Bien-etre animal, Gestion du paturage, Renovation des prairies, Alimentation des ovins, Simplification du travail, Autonomie proteique, Agriculture de precision (auto-pesee, clotures virtuelles...), Pratiques d'elevage bas-carbone, Genetique pour ameliorer l'efficacite et la resilience, Tonte des agneaux...","filiere":"Elevage (ovin)","especes":"Ovins","reseaux":"Reseau Digifermes","adresse":"Le Mourier, 87 800 Saint Priest Ligoure","lat":45.65987,"lon":1.293076,"site":"https://idele.fr/ciirpo/"},{"nom":"Invenio","region":"Nouvelle-Aquitaine","contact":"Sebastien CAVAIGNAC","tel":"05 33 89 10 20","mail":"contact@invenio-fl.fr","type":"Mixte AB et conventionnel","sujets":"Techniques culturales, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Qualite et performance des productions","filiere":"Maraichage","especes":"Fraisier, Framboisier, M-rier, Chataignier, Aubergine, Poivron, Asperge, Carotte, Concombre, Melon, Pommier, Prunier, Salade,Tomate, Stevia, Goji","reseaux":"Reseau IRFEL","adresse":"MIN de Brienne, 110 Quai de Paludate, 33800 Bordeaux","lat":44.824755,"lon":-0.545555,"site":"http://www.invenio-fl.fr"},{"nom":"Laboratoire de la Chambre d'agriculture de la Gironde","region":"Nouvelle-Aquitaine","contact":"Paul GODARD DE BEAUFORT","tel":"05 56 35 00 00","mail":"p.godard-beaufort@gironde.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Oenologie","filiere":"Viticulture","especes":"Raisin de cuve","reseaux":"Reseau Chambre d'agriculture","adresse":"Laboratoire de la Chambre d'Agriculture de la Gironde\n39 Rue Michel Montaigne, CS 20115 33295 Blanquefort Cedex","lat":44.919389,"lon":-0.644407,"site":"https://blanquefort.oenocentres.com/"},{"nom":"PALMIPoLE","region":"Nouvelle-Aquitaine","contact":"Rafael PREVOT","tel":"05 58 85 45 25 /\n06 40 60 15","mail":"elevage@landes.chambagri.fr /\nrafael.prevot@landes.chambagri.fr","type":"Conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Sante et bien-etre animal, Autonomie de l'alimentation animale","filiere":"Elevage (palmipede)","especes":"Canards","reseaux":"Reseau FARM DEMO HUB","adresse":"Domaine d'Artigueres \n1076 route de Haut-Mauco, 40280 Benquet","lat":43.826484,"lon":-0.531097,"site":"http://www.cepso.chambagri.fr"},{"nom":"Plateforme d'essais Viticoles","region":"Nouvelle-Aquitaine","contact":"Severine DUPIN","tel":"05 56 35 58 77","mail":"s.dupin@gironde.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, Tests de produits","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"Chateau Queyssard, 33370 Pompignac","lat":44.863123,"lon":-0.448786,"site":"https://gironde.chambres-agriculture.fr/a-conserver/viticulture-laccompagnement-de-la-chambre-dagriculture/experimenter"},{"nom":"Station experimentale d'Archigny","region":"Nouvelle-Aquitaine","contact":"Thierry QUIRIN","tel":"05 49 85 87 86","mail":"thierry.quirin@vienne.chambagri.fr","type":"Agriculture biologique","sujets":"Essais systemes","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau FARM DEMO HUB","adresse":"La Petite Chaussee, 86210 Archigny","lat":46.687149,"lon":0.678341,"site":"https://ecophytopic.fr/dephy/concevoir-son-systeme/site-archigny-made-ab"},{"nom":"Vignoble experimental - Vinopole Bordeaux Aquitaine","region":"Nouvelle-Aquitaine","contact":"Laurent BERNOS","tel":"05 56 35 00 00","mail":"l.bernos@gironde.chambagri.fr / vigne-vin@gironde.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Qualite et performance des productions","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"39 rue Michel de Montaigne, CS 20115 33295 Blanquefort Cedex","lat":44.918647,"lon":0.644094,"site":"http://www.vinopole.com"},{"nom":"CENTREX (Centre Experimental des Fruits et Legumes du Roussillon)","region":"Occitanie","contact":"Eric HOSTALNOU","tel":"04 68 28 67 21","mail":"contact@centrex66.com","type":"Mixte AB et conventionnel","sujets":"Essais systemes, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Qualite et performance des productions","filiere":"Maraichage","especes":"Abricot, Pˆche, Grenade, Salade, Artichaut, Patate douce","reseaux":"Reseau FARM DEMO HUB","adresse":"Chemin du Mas Faivre, 66440 Torreilles","lat":42.755886,"lon":2.99246,"site":"http://www.centrex66.com/\nhttps://www.youtube.com/watch?v=V4T5iJBj68I"},{"nom":"SUDEXPE (Station de recherche appliquee Fruits et Legumes)","region":"Occitanie","contact":"Anton LAUBRIET","tel":"04 67 71 55 00","mail":"info@sudexpe.net","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, effluents et phytosanitaires, Materiel vegetal, Qualite et performance des productions","filiere":"Maraichage","especes":"Asperge, Pomme, Melon, Diversification (Vigne, Kaki, Grenade)","reseaux":"Reseau FARM DEMO HUB","adresse":"Mas de Carriere, 34590 Marsillargues","lat":43.63319,"lon":4.169787,"site":"https://www.sudexpe.net/\nhttps://www.youtube.com/watch?v=THTfjyWqga0&t=6s"},{"nom":"VINIPoLE du Roussillon","region":"Occitanie","contact":"Julien THIERY","tel":"06 71 57 19 65","mail":"julien.thiery@pyrenees-orientales.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Materiel vegetal, Reduction des intrants, Qualite et performance des productions","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau FARM DEMO HUB","adresse":"19, avenue de Grande Bretagne, 66025 Perpignan","lat":42.699336,"lon":2.880795,"site":"https://po.chambres-agriculture.fr/sinformer/les-filieres-de-production/productions-viticoles"},{"nom":"CEFEL (Centre d'Experimentation Fruits et Legumes)","region":"Occitanie","contact":"Marie-Eve BIARGUES","tel":"05 63 03 71 77","mail":"biargues.cefel@orange.fr","type":"Mixte AB et conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Qualite et performance des productions","filiere":"Maraichage","especes":"Pomme, Prune, Raisin, Melon, Ail","reseaux":"Reseau FARM DEMO HUB","adresse":"49 Chemin des Rives, 82000 Montauban","lat":44.037287,"lon":1.308885,"site":"http://www.cefel.eu\nhttps://www.youtube.com/watch?v=myFkCPgP6yM"},{"nom":"Domaine de Bayssan","region":"Occitanie","contact":"Remy KULAGOWSKI","tel":"06 17 32 40 61","mail":"remy.kulagowski@herault.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Grandes cultures","filiere":"Grandes cultures","especes":"Grandes cultures","reseaux":"Reseau FARM DEMO HUB","adresse":"Chambre departementale d'Agriculture - Maison des  Agriculteurs, 34875 Lattes Cedex","lat":43.582347,"lon":3.892194,"site":"https://herault.chambres-agriculture.fr/resultats-de-recherche?tx_solr%5Bq%5D=domaine+de+bayssan\nhttps://www.youtube.com/watch?v=ruzceKTUrbA"},{"nom":"Domaine experimental de Cazes","region":"Occitanie","contact":"Stephanie RUBIO","tel":"06 40 21 58 59","mail":"stephanie.rubio@aude.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Reductions des intrants, effluents et phytosanitaires, Materiel vegetal","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau FARM DEMO HUB","adresse":"Domaine de Cazes - Cazes, 11240 Alaigne","lat":43.112767,"lon":2.096812,"site":"https://aude.chambres-agriculture.fr/resultats-de-recherche?tx_solr%5Bq%5D=domaine+de+cazes"},{"nom":"Ferme experimentale de Derval","region":"Pays de la Loire","contact":"Sophie ROSAY\nAmandine BOUCHERIE","tel":"06 26 79 73 86","mail":"sophie.rosay@pl.chambagri.fr","type":"Conventionnel","sujets":"Traite, Production de fourrages, Baisse de la consommation energetique, Diminution des emissions de gaz a effet de serre (GES), Stockage du carbone, Developpement des energies renouvelables a la ferme, Diversification du mix-energetique, Economie circulaire, Adaptations au changement climatique","filiere":"Elevage (bovin)","especes":"Bovins lait (Prim'Holstein)","reseaux":"Reseau F@rmXP\nReseau Digifermes","adresse":"15, La Touche - 44590 Derval","lat":47.691077,"lon":-1.680988,"site":"https://rd-pays-de-la-loire.chambres-agriculture.fr/dispositifs-experimentaux/fermes-experimentales/derval-44"},{"nom":"Ferme experimentale de Thorigne d'Anjou","region":"Pays de la Loire","contact":"Julien FORTIN","tel":"06 60 47 45 94","mail":"julien.fortin@pl.chambagri.fr","type":"Agriculture biologique","sujets":"Technique culturale, Autonomie alimentaire, Bouclage des cycles, Systeme econome, Productions fourrageres, Croisements animaux, Finition des animaux, Biodiversite, Attenuation et adaptation au changement climatique","filiere":"Elevage (bovin)","especes":"Bovins viande (Limousin et croises Angus)","reseaux":"Reseau F@rmXP","adresse":"La garenne de la cheminee, 49220 Thorigne d'Anjou","lat":47.615977,"lon":-0.663675,"site":"https://rd-pays-de-la-loire.chambres-agriculture.fr/dispositifs-experimentaux/fermes-experimentales/thorigne-danjou-49"},{"nom":"Ferme experimentale des Etablieres","region":"Pays de la Loire","contact":"Sixtine FAUVIOT","tel":"07 52 67 48 06","mail":"sixtine.fauviot@pl.chambagri.fr","type":"Conventionnel","sujets":"Qualite de la viande, Technique culturale, Essais systemes, Sante et bien-etre animal, Autonomie de l'alimentation animale, Qualite et performance des productions, Attenuation et adaptation au changement climatique, Numerique, Transition vers l'agriculture de conservation des sols (ACS), Biodiversite, Gestion bocagere","filiere":"Elevage (bovin)","especes":"Bovins viande (Charolais)","reseaux":"Reseau F@rmXP\nReseau Digifermes","adresse":"Barrage de Moulin Papon, Route du, 85000 La Roche-sur-Yon","lat":46.693134,"lon":-1.414255,"site":"https://rd-pays-de-la-loire.chambres-agriculture.fr/dispositifs-experimentaux/fermes-experimentales/les-etablieres-85"},{"nom":"Ferme experimentale laitiere des Trinottieres","region":"Pays de la Loire","contact":"Pascal SALVETTI","tel":"06 20 54 59 94","mail":"pascal.salvetti@pl.chambagri.fr","type":"Conventionnel","sujets":"Alimentation des vaches laitieres en production et taries, Gestion des genisses, Logement des veaux, Adaptation et attenuation du changement climatique, Alimentation de precision, Sante et bien-etre animal","filiere":"Elevage (bovin)","especes":"Vaches laitieres Prim'Holstein","reseaux":"Reseau F@rmXP","adresse":"49140 Montreuil-sur-Loir","lat":47.607792,"lon":-0.403506,"site":"https://rd-pays-de-la-loire.chambres-agriculture.fr/dispositifs-experimentaux/fermes-experimentales/les-trinottieres-49-atelier-lait"},{"nom":"Ferme experimentale porcine des Trinottieres","region":"Pays de la Loire","contact":"Pascal SALVETTI","tel":"06 20 54 59 94","mail":"pascal.salvetti@pl.chambagri.fr","type":"Conventionnel","sujets":"Sante et bien-etre animal, Batiments et equipements, Genetique, Performances, Adaptation au changement climatique, Alimentation","filiere":"Elevage (porcin)","especes":"Porcs","reseaux":"Reseau Chambre d'agriculture","adresse":"49140 Montreuil-sur-Loir","lat":47.61262,"lon":-0.466719,"site":"https://rd-pays-de-la-loire.chambres-agriculture.fr/dispositifs-experimentaux/fermes-experimentales/les-trinottieres-49-atelier-porc"},{"nom":"APREL (Association Proven‡ale de Recherche et d'Experimentation Legumiere)","region":"Provence-Alpes-Cote d'Azur","contact":"Claire GOILLON","tel":"04 90 92 39 47","mail":"aprel@aprel.fr","type":"Mixte AB et conventionnel","sujets":"Protection des cultures, Maladies et ravageurs, Materiel vegetal, Qualite et performance des productions,Techniques culturales, Couverts vegetaux, Reductions des intrants, Fertilite des sols, Irrigation, Fertilisation, Paillages, Materiels innovants, Photovoltaique, Effluents, Itineraires techniques, Essais systemes","filiere":"Maraichage","especes":"Tomate, Melon, Salade, Fraise, Courgette, Aubergine, Poivron, Concombre, Carotte, Epinard, Mache, Celeri, Maraichage diversifie","reseaux":"Reseau IRFEL","adresse":"Route Molleges, 13210 Saint-Remy-de-Provence","lat":43.835762,"lon":4.927561,"site":"http://www.aprel.fr"},{"nom":"AREDVI (Association Regionale d'Experimentation et de Developpement Viti-vinicole)","region":"Provence-Alpes-Cote d'Azur","contact":"Florence FRAISSE","tel":"06 71 57 73 23","mail":"contact@aredvi.fr","type":"Mixte AB et conventionnel","sujets":"Irrigation, Techniques culturales, Essais systemes, Reductions des intrants, Materiel vegetal, Itineraires techniques,  Qualite et performance des productions, Maladies et ravageurs","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"Maison des Agriculteurs\n22, avenue Henri Pontier, 13626 Aix-en-Provence Cedex 1","lat":43.533079,"lon":5.440022,"site":"https://rd.agriculture-paca.fr/qui-sommes-nous/aredvi/"},{"nom":"CREAM (Centre de recherche et d'experimentations agricoles mediterraneen)","region":"Provence-Alpes-Cote d'Azur","contact":"Serge GRAVEROL","tel":"04 93 18 45 00","mail":"sgraverol@alpes-maritimes.chambagri.fr","type":"Mixte AB et conventionnel","sujets":"Adaptation au changement climatique, Energie, Irrigation, Technique culturale, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal, Itineraires techniques, Qualite post-recolte (tenue en vase) Maladies et ravageurs.","filiere":"Horticulture","especes":"Fleurs coupees, Feuillages decoratifs, PPAM, Arbres en ville, Verger oleicole de conservation","reseaux":"Reseau Chambre d'agriculture","adresse":"796 Route de Gattieres Lieu dit la Baronne, 06610 La Gaude","lat":43.72474,"lon":7.178433,"site":"https://rd.agriculture-paca.fr/qui-sommes-nous/cream/"},{"nom":"CRIIAM SUD (Centre de Ressource et d Innovation pour l Irrigation et l Agrometeorologie en Region Sud)","region":"Provence-Alpes-Cote d'Azur","contact":"Olivier GAUER","tel":"04 90 63 22 66","mail":"contact@criiamsud.fr","type":"Conventionnel","sujets":"Agrometeorologie, Changement climatique, Modelisation epidemiologique, Irrigation et besoins en eau des cultures","filiere":"Toutes filieres","especes":"Toutes filieres","reseaux":"Reseau Chambre d'agriculture","adresse":"45 rue de la Chapellerie, 84200 Carpentras","lat":44.03305,"lon":5.04278,"site":"https://www.criiamsud.fr/"},{"nom":"Domaine experimental Viticole de la Chambre d'Agriculture de Vaucluse (Piolenc)","region":"Provence-Alpes-Cote d'Azur","contact":"Francois BERUD","tel":"06 86 17 93 51","mail":"francois.berud@vaucluse.chambagri.fr","type":"Conventionnel","sujets":"Energie, Irrigation, Technique culturale, Essais systemes, Reductions des intrants, effluents et phytosanitaires, Materiel vegetal (diversite genetique du Grenache N, cepages potentiellement adaptes au changement climatique, varietes tolerantes aux maladies, nouveaux porte-greffes), Itineraires techniques, Qualite et performance des productions, Maladies et ravageurs","filiere":"Viticulture","especes":"Vigne","reseaux":"Reseau Chambre d'agriculture","adresse":"2260, route du Gres, 84100 Orange","lat":44.174841,"lon":4.797385,"site":"https://rd.agriculture-paca.fr/"},{"nom":"Station d'experimentation arboricole La Pugere","region":"Provence-Alpes-Cote d'Azur","contact":"Vincent LESNIAK","tel":"04 90 59 29 00","mail":"contact@lapugere.com","type":"Mixte AB et conventionnel","sujets":"Irrigation, Technique culturale, Essais systemes, Reductions des intrants, Materiel vegetal, Qualite et performance des productions, Maladies et ravageurs, Fertilite des sols, Impact climatique, Diversification des exploitations","filiere":"Arboriculture","especes":"Pomme, Poire","reseaux":"Reseau FARM DEMO HUB","adresse":"Chemin de la Barque de Melespine, 13370 Mallemort","lat":43.744651,"lon":5.125386,"site":"https://rd.agriculture-paca.fr/qui-sommes-nous/la-pugere/"},{"nom":"SUDEXPE site de Saint-Gilles","region":"Occitanie","contact":"Anton LAUBRIET","tel":"04 66 87 00 22","mail":"info@sudexpe.net","type":"Mixte AB et conventionnel","sujets":"Reduction des intrants, effluents et phytosanitaires, Materiel vegetal, Qualite et performance des productions","filiere":"Maraichage","especes":"Pêches, abricots, cerises, olives","reseaux":"Reseau FARM DEMO HUB","adresse":"517 chemin du Mas d'Asport, 30800 SAINT GILLES","lat":43.677609,"lon":4.430031,"site":"https://gard.chambres-agriculture.fr/sinformer/innover/experimentation"},{"nom":"DIGIFERME ARMEFLHOR","region":"La Reunion","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Outils numeriques, Veille technologique, Vulgarisation","filiere":"Fruits et legumes","especes":"Maraichage sous abri, Arboriculture fruitiere, PPAM, Horticulture","reseaux":"Reseau Digifermes","adresse":"1 chemin de l'IRFA, Bassin Martin, 97410 Saint-Pierre","lat":-21.3393,"lon":55.4781,"site":"https://armeflhor.fr/"},{"nom":"DIGIFERME CIRI (IFIP)","region":"Bretagne","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Nutrition, Sante, Environnement, Bien-etre animal, Reproduction, Batiments-equipements","filiere":"Elevage (porc)","especes":"Porcs","reseaux":"Reseau Digifermes","adresse":"La Motte au Vicomte, 35850 Romille","lat":48.215,"lon":-1.8736,"site":"https://ifip.asso.fr/"},{"nom":"DIGIFERME de Boigneville","region":"Ile-de-France","contact":"","tel":"","mail":"","type":"Mixte AB et conventionnel","sujets":"Zero saisie, Stations meteo connectees, Capteurs, OAD, Robots, Gestion des adventices, Irrigation de precision","filiere":"Grandes cultures","especes":"Ble, Orge, Mais, Colza, Pois, Chanvre","reseaux":"Reseau Digifermes","adresse":"Station experimentale ARVALIS, 91720 Boigneville","lat":48.3275,"lon":2.385,"site":"https://www.arvalis.fr/l-institut/nous-connaitre/stations-laboratoires-arvalis/station-boigneville"},{"nom":"DIGIFERME de Chamberet","region":"Nouvelle-Aquitaine","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Tracabilite zootechnique et sanitaire, Recherche appliquee, Formation","filiere":"Elevage (equin)","especes":"Equins","reseaux":"Reseau Digifermes","adresse":"Plateau technique IFCE, 19370 Chamberet","lat":45.5872,"lon":1.7194,"site":"https://www.ifce.fr/ifce/recherche/plateaux-techniques/chamberet/"},{"nom":"DIGIFERME La Cazotte","region":"Occitanie","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Detection precoce sanitaire, Bien-etre animal, Conditions de travail, Pesage automatique, Suivi pousse herbe","filiere":"Elevage (ovin)","especes":"Ovins lait (AOP Roquefort), Ovins viande, Bovins","reseaux":"Reseau Digifermes","adresse":"Route de Bournac, 12400 Saint-Affrique","lat":43.9586,"lon":2.8861,"site":"https://la-cazotte.educagri.fr/"},{"nom":"DIGIFERME le CIRVEAU","region":"Bretagne","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Batiment d'elevage du futur, Automatisation, Podometres, Antennes UHF, Innovation technologique","filiere":"Elevage (bovin)","especes":"Veaux de boucherie","reseaux":"Reseau Digifermes","adresse":"Le Rheu, 56430 Mauron","lat":48.0867,"lon":-2.2861,"site":"https://digifermes.com/blog/axes-de-travail/mauron-56/"},{"nom":"DIGIFERME de Plumecoq","region":"Grand Est","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Robotique, Alternatives au desherbage chimique, Tracabilite, IA, OAD, Automatisation","filiere":"Viticulture","especes":"Vigne (Champagne)","reseaux":"Reseau Digifermes","adresse":"51530 Chouilly","lat":49.0653,"lon":4.0019,"site":"https://digifermes.com/blog/axes-de-travail/plumecoq-51/"},{"nom":"DIGIFERME de Saint-Hilaire-en-Woevre","region":"Grand Est","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Desherbage drone, Robotique, Gestion paturage, Autonomie proteique, Bien-etre animal, Reduction penibilite","filiere":"Elevage (bovin) et grandes cultures","especes":"Vaches allaitantes, Prairies, Mais","reseaux":"Reseau Digifermes","adresse":"16 Rue du Moulin de Moncelle, 55160 Saint-Hilaire-en-Woevre","lat":48.9914,"lon":5.7197,"site":"https://www.arvalis.fr/l-institut/nous-connaitre/stations-laboratoires-arvalis/ferme-experimentale-lorraine"},{"nom":"DIGIFERME V'innopole Sud-Ouest","region":"Occitanie","contact":"","tel":"","mail":"","type":"Conventionnel","sujets":"Pilotage numerique, Robotique, Capteurs sol, Pulverisateur innovant, Imagerie radar, Oenologie","filiere":"Viticulture","especes":"Vigne (300 cepages)","reseaux":"Reseau Digifermes","adresse":"Brames-Aigues, 81310 Lisle-sur-Tarn","lat":43.8567,"lon":1.8092,"site":"https://www.vignevin-occitanie.com/qui-sommes-nous/pole-sud-ouest/"},{"nom":"ANPN","region":"Nouvelle-Aquitaine","contact":"Maud THOMAS","tel":"05 53 01 60 08","mail":"contact@anpn.eu","type":"Mixte AB et conventionnel","sujets":"Evaluation varietale, Gestion enherbement, Maladies, Ravageurs (entomologie, biocontrole), Fertilisation, Irrigation, Biodiversite","filiere":"Arboriculture fruitiere","especes":"Noisette, Noix, Amande","reseaux":"Reseau IRFEL","adresse":"Lieu-dit Louberie, 47290 Cancon","lat":44.5275,"lon":0.6311,"site":"https://www.anpn.eu/"},{"nom":"APEF","region":"Hauts-de-France","contact":"Pierre VARLET","tel":"03 21 07 89 89","mail":"contact@endive.fr","type":"Conventionnel","sujets":"Gestion enherbement, Irrigation, Maladies, Ravageurs, Evaluation et creation varietale, Emballages loi AGEC","filiere":"Fruits et legumes","especes":"Endive (et produits derives Carmine)","reseaux":"Reseau IRFEL","adresse":"2 Rue des Fleurs, 62000 Arras","lat":50.2914,"lon":2.7772,"site":"https://www.endive.fr/"},{"nom":"AREFE","region":"Grand Est","contact":"","tel":"03 29 89 58 18","mail":"arefe@orange.fr","type":"Mixte AB et conventionnel","sujets":"Evaluation varietale, Gestion enherbement, Maladies, Ravageurs, Fertilisation, Durabilite des sols, Biodiversite","filiere":"Arboriculture fruitiere","especes":"Mirabelle, Prune, Cerise acide","reseaux":"Reseau IRFEL","adresse":"Rue Arnay Le Duc, Hattonville, 55210 Vigneulles-les-Hattonchatel","lat":48.9803,"lon":5.7044,"site":"http://www.prunes-et-mirabelles-de-lorraine.com/"},{"nom":"ARELPAL","region":"Pays de la Loire","contact":"Sylvain GERARD","tel":"02 28 27 03 00","mail":"sylvain.gerard@arelpal.org","type":"Mixte AB et conventionnel","sujets":"Evaluation varietale, Maladies et ravageurs, Irrigation, Gestion enherbement, Technique culturale","filiere":"Fruits et legumes","especes":"Laitue, Jeunes pousses, Poireau, Radis, Tomate, Concombre","reseaux":"Reseau IRFEL","adresse":"La Metairie Neuve, 44860 Pont-Saint-Martin","lat":47.1278,"lon":-1.5783,"site":"https://www.arelpal.org/"},{"nom":"Station experimentale de Creysse","region":"Nouvelle-Aquitaine","contact":"","tel":"05 65 32 22 22","mail":"contact@stationcreysse.fr","type":"Mixte AB et conventionnel","sujets":"Evaluation varietale, Conduite culturale, Maladies, Ravageurs, Conservation post-recolte","filiere":"Arboriculture fruitiere","especes":"Noix","reseaux":"Reseau IRFEL","adresse":"30 Route de Perrical, 46600 Creysse","lat":44.8889,"lon":1.6017,"site":"https://www.stationexperimentaledecreysse.fr/"},{"nom":"GRAB","region":"Provence-Alpes-Cote d'Azur","contact":"","tel":"04 90 84 01 70","mail":"secretariat@grab.fr","type":"Agriculture biologique","sujets":"Agriculture biologique, Evaluation varietale, Gestion enherbement, Couverts vegetaux, Biocontrole, Bandes fleuries, Barrieres physiques","filiere":"Fruits et legumes, Arboriculture fruitiere","especes":"Pomme, Poire, Abricot, Peche, Cerise, Amande, Salade, Tomate, Aubergine, Courgette","reseaux":"Reseau IRFEL","adresse":"Maison de la Bio, 255 chemin de la Castelette, 84911 Avignon","lat":43.9493,"lon":4.8055,"site":"https://www.grab.fr/"}];
+const SVGS = {"digi": "<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" style=\"width:18px;height:18px;color:#7F77DD;flex-shrink:0\"><circle cx=\"9\" cy=\"9\" r=\"7\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 5 9 Q 9 5 13 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><circle cx=\"5\" cy=\"9\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"13\" cy=\"9\" r=\"1.3\" fill=\"currentColor\"/><circle cx=\"9\" cy=\"5.5\" r=\"1.3\" fill=\"currentColor\"/></svg>", "fxp": "<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" style=\"width:18px;height:18px;color:#1D9E75;flex-shrink:0\"><rect x=\"6\" y=\"2\" width=\"6\" height=\"3\" rx=\"0.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 7 5 L 7 14 Q 7 16 9 16 Q 11 16 11 14 L 11 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 7 10 L 11 10\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"8.5\" cy=\"13\" r=\"0.8\" fill=\"currentColor\"/><circle cx=\"10\" cy=\"11.5\" r=\"0.5\" fill=\"currentColor\"/></svg>", "irfel": "<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" style=\"width:18px;height:18px;color:#D85A30;flex-shrink:0\"><circle cx=\"9\" cy=\"11\" r=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 9 6 L 9 3 M 9 4 L 11 2.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><circle cx=\"11\" cy=\"2.5\" r=\"0.6\" fill=\"currentColor\"/></svg>", "fdh": "<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" style=\"width:18px;height:18px;color:#378ADD;flex-shrink:0\"><circle cx=\"9\" cy=\"9\" r=\"2.5\" fill=\"currentColor\"/><circle cx=\"3\" cy=\"3\" r=\"1.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"15\" cy=\"3\" r=\"1.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"3\" cy=\"15\" r=\"1.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"15\" cy=\"15\" r=\"1.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 4.5 4.5 L 7 7 M 13.5 4.5 L 11 7 M 4.5 13.5 L 7 11 M 13.5 13.5 L 11 11\" stroke=\"currentColor\" stroke-width=\"1.2\"/></svg>", "chambre": "<svg viewBox=\"0 0 18 18\" xmlns=\"http://www.w3.org/2000/svg\" style=\"width:18px;height:18px;color:#BA7517;flex-shrink:0\"><path d=\"M 2 16 L 16 16\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M 3 16 L 3 8 M 6 16 L 6 8 M 9 16 L 9 8 M 12 16 L 12 8 M 15 16 L 15 8\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 2 8 L 9 3 L 16 8 Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg>"};
+const F = {q:"", reseau:new Set(), filiere:new Set(), region:new Set(), type:new Set()};
+const setOf = (key, split=null) => {
+  const s = new Set();
+  STATIONS.forEach(st => {
+    const v = st[key] || "";
+    if (split) v.split(split).forEach(x => { x=x.trim(); if(x) s.add(x); });
+    else if (v) s.add(v);
+  });
+  return [...s].sort();
+};
+const RESEAUX  = setOf("reseaux", "\n");
+const FILIERES = setOf("filiere", ",");
+const REGIONS  = setOf("region");
+const TYPES    = setOf("type");
+
+function reseauKey(r) {
+  if (r.includes("Digifermes")) return "digi";
+  if (r.includes("F@rmXP"))     return "fxp";
+  if (r.includes("IRFEL"))      return "irfel";
+  if (r.includes("FARM DEMO"))  return "fdh";
+  return "chambre";
+}
+
+function buildChips(containerId, items, filterKey, withIcon){
+  const c = document.getElementById(containerId);
+  c.innerHTML = items.map(it => {
+    const icon = withIcon ? SVGS[reseauKey(it)] : "";
+    return '<span class="fc-chip" data-v="'+it.replace(/"/g,'&quot;')+'">'+icon+'<span>'+it+'</span></span>';
+  }).join("");
+  c.querySelectorAll(".fc-chip").forEach(ch => {
+    ch.addEventListener("click", () => {
+      const v = ch.dataset.v;
+      if (F[filterKey].has(v)) { F[filterKey].delete(v); ch.classList.remove("on"); }
+      else { F[filterKey].add(v); ch.classList.add("on"); }
+      render();
+    });
+  });
+}
+buildChips("fc-f-reseau",  RESEAUX,  "reseau", true);
+buildChips("fc-f-filiere", FILIERES, "filiere", false);
+buildChips("fc-f-region",  REGIONS,  "region", false);
+buildChips("fc-f-type",    TYPES,    "type", false);
+
+// Debounce pour le champ de recherche : evite le recadrage carte a chaque frappe
+let qTimer = null;
+document.getElementById("fc-q").addEventListener("input", e => {
+  F.q = e.target.value.toLowerCase();
+  clearTimeout(qTimer);
+  qTimer = setTimeout(render, 300);
+});
+document.getElementById("fc-reset").addEventListener("click", () => {
+  F.q = ""; F.reseau.clear(); F.filiere.clear(); F.region.clear(); F.type.clear();
+  document.getElementById("fc-q").value = "";
+  document.querySelectorAll(".fc-chip.on").forEach(c => c.classList.remove("on"));
+  render();
+});
+
+let map = null;
+let markers = [];
+if (typeof L !== "undefined" && !window.__LEAFLET_FAILED__) {
+  try {
+    map = L.map("fc-map", { scrollWheelZoom:true, zoomControl:true }).setView([46.6, 2.4], 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '(c) OpenStreetMap', maxZoom: 18 }).addTo(map);
+  } catch(e) {
+    document.getElementById("map-fallback").classList.add("show");
+    map = null;
+  }
+}
+
+function reseauColor(r) {
+  if (r.includes("Digifermes")) return "#7F77DD";
+  if (r.includes("F@rmXP"))     return "#1D9E75";
+  if (r.includes("IRFEL"))      return "#D85A30";
+  if (r.includes("FARM DEMO"))  return "#378ADD";
+  return "#BA7517";
+}
+function reseauTagClass(r) {
+  if (r.includes("Digifermes")) return "fc-tag-digi";
+  if (r.includes("F@rmXP"))     return "fc-tag-fxp";
+  if (r.includes("IRFEL"))      return "fc-tag-irfel";
+  if (r.includes("FARM DEMO"))  return "fc-tag-fdh";
+  return "fc-tag-chambre";
+}
+
+function clearMarkers(){
+  if (!map) return;
+  markers.forEach(x => map.removeLayer(x.m));
+  markers = [];
+}
+
+function matchAny(set, value, split=null) {
+  if (set.size === 0) return true;
+  if (!value) return false;
+  if (split) {
+    const parts = value.split(split).map(x => x.trim());
+    return parts.some(p => set.has(p));
+  }
+  return set.has(value);
+}
+function filtered() {
+  return STATIONS.filter(s => {
+    if (!matchAny(F.reseau,  s.reseaux, "\n")) return false;
+    if (!matchAny(F.filiere, s.filiere, ",")) return false;
+    if (!matchAny(F.region,  s.region)) return false;
+    if (!matchAny(F.type,    s.type)) return false;
+    if (F.q) {
+      const t = (s.nom + " " + s.especes + " " + s.sujets + " " + s.filiere).toLowerCase();
+      if (!t.includes(F.q)) return false;
+    }
+    return true;
+  });
+}
+function tagsHtml(reseaux) {
+  return reseaux.split("\n").map(r => r.trim()).filter(Boolean)
+    .map(r => '<span class="fc-tag '+reseauTagClass(r)+'">'+SVGS[reseauKey(r)]+'<span>'+r.replace("Reseau ", "")+'</span></span>')
+    .join(" ");
+}
+function render() {
+  const items = filtered();
+  document.getElementById("fc-n").textContent = items.length;
+  document.getElementById("fc-r").textContent = new Set(items.map(s => s.region)).size;
+  const reseauSet = new Set();
+  items.forEach(s => s.reseaux.split("\n").forEach(r => { r=r.trim(); if(r) reseauSet.add(r); }));
+  document.getElementById("fc-nr").textContent = reseauSet.size;
+
+  if (map) {
+    clearMarkers();
+    items.forEach(s => {
+      if (s.lat == null || s.lon == null) return;
+      const c = reseauColor(s.reseaux);
+      const icon = L.divIcon({
+        className: "fc-marker",
+        html: '<div style="width:14px;height:14px;border-radius:50%;background:'+c+';border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></div>',
+        iconSize: [18,18], iconAnchor: [9,9]
+      });
+      const m = L.marker([s.lat, s.lon], { icon }).addTo(map);
+      const siteLink = s.site ? '<br><a href="'+s.site+'" target="_blank">Site officiel</a>' : "";
+      m.bindPopup('<b>'+s.nom+'</b><br><span style="color:var(--text-secondary)">'+s.region+'</span><br>'+s.filiere + siteLink);
+      markers.push({m, s});
+    });
+
+    // Auto-recadrage : si au moins un filtre actif, on zoom sur les markers visibles
+    const anyFilter = F.q || F.reseau.size || F.filiere.size || F.region.size || F.type.size;
+    if (anyFilter && markers.length > 0) {
+      const bounds = L.latLngBounds(markers.map(x => [x.s.lat, x.s.lon]));
+      map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 10, duration: 0.6 });
+    } else if (!anyFilter) {
+      // Aucun filtre : retour a la vue France complete
+      map.flyTo([46.6, 2.4], 5, { duration: 0.6 });
+    }
+  }
+
+  const list = document.getElementById("fc-list");
+  if (items.length === 0) { list.innerHTML = '<div class="fc-empty">Aucune station ne correspond a ces criteres.</div>'; return; }
+  list.innerHTML = items.map((s, i) => {
+    const contactBlock = (s.contact || s.tel || s.mail) ?
+      '<div><b>Contact :</b> '+(s.contact || "-")+(s.tel ? " - "+s.tel : "")+(s.mail ? ' - <a href="mailto:'+s.mail+'">'+s.mail+'</a>' : "")+'</div>' : "";
+    const siteBlock = s.site ? '<div><b>Site :</b> <a href="'+s.site+'" target="_blank">'+s.site+'</a></div>' : "";
+    return '<div class="fc-item" data-i="'+i+'">' +
+      '<div class="fc-item-h"><div class="fc-item-n">'+s.nom+'</div><div class="fc-item-r">'+s.region+'</div></div>' +
+      '<div class="fc-item-m">'+tagsHtml(s.reseaux)+' <span>'+s.filiere+'</span></div>' +
+      '<div class="fc-item-x">' +
+        '<div><b>Type :</b> '+(s.type || "-")+'</div>' +
+        '<div><b>Especes :</b> '+(s.especes || "-")+'</div>' +
+        '<div><b>Sujets :</b> '+(s.sujets || "-")+'</div>' +
+        contactBlock +
+        '<div><b>Adresse :</b> '+(s.adresse || "-")+'</div>' +
+        siteBlock +
+      '</div></div>';
+  }).join("");
+  list.querySelectorAll(".fc-item").forEach(it => {
+    it.addEventListener("click", () => {
+      it.classList.toggle("exp");
+      const idx = +it.dataset.i;
+      const s = items[idx];
+      if (map && s.lat != null && s.lon != null) {
+        map.flyTo([s.lat, s.lon], 9, { duration: 0.6 });
+        const found = markers.find(x => x.s === s);
+        if (found) found.m.openPopup();
+      }
+    });
+  });
+}
+// ============================================================
+// Bloc "station la plus proche" : autocomplete BAN + Haversine
+// ============================================================
+(function setupNearest() {
+  const inputEl    = document.getElementById("nearest-q");
+  const suggestEl  = document.getElementById("nearest-suggest");
+  const resultsEl  = document.getElementById("nearest-results");
+  let suggestions = [];
+  let activeIdx = -1;
+  let debounceTimer = null;
+  let selectedPoint = null; // {lat, lon, label}
+
+  // BAN autocomplete (api-adresse.data.gouv.fr, gratuit, sans cle, limite 50 req/s/ip)
+  async function fetchSuggestions(q) {
+    if (q.length < 3) return [];
+    const url = "https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(q) + "&limit=6&autocomplete=1";
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const data = await r.json();
+      return (data.features || []).map(f => ({
+        label: f.properties.label,
+        context: f.properties.context,
+        lat: f.geometry.coordinates[1],
+        lon: f.geometry.coordinates[0],
+        type: f.properties.type
+      }));
+    } catch (e) {
+      console.error("BAN error:", e);
+      return null;
+    }
+  }
+
+  function renderSuggestions() {
+    if (suggestions.length === 0) { suggestEl.classList.remove("show"); return; }
+    suggestEl.innerHTML = suggestions.map((s, i) =>
+      '<div class="nearest-suggest-item' + (i === activeIdx ? ' active' : '') + '" data-i="' + i + '">' +
+        '<div class="label">' + s.label + '</div>' +
+        '<div class="context">' + (s.context || '') + '</div>' +
+      '</div>'
+    ).join("");
+    suggestEl.classList.add("show");
+    suggestEl.querySelectorAll(".nearest-suggest-item").forEach(it => {
+      it.addEventListener("mousedown", e => {
+        e.preventDefault();
+        selectSuggestion(+it.dataset.i);
+      });
+    });
+  }
+
+  function selectSuggestion(i) {
+    const s = suggestions[i];
+    if (!s) return;
+    selectedPoint = { lat: s.lat, lon: s.lon, label: s.label };
+    inputEl.value = s.label;
+    suggestEl.classList.remove("show");
+    suggestions = [];
+    activeIdx = -1;
+    computeAndRenderNearest();
+  }
+
+  function distanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R * 2 * Math.asin(Math.sqrt(a));
+  }
+
+  function reseauKeyLocal(r) {
+    if (r.includes("Digifermes")) return "digi";
+    if (r.includes("F@rmXP"))     return "fxp";
+    if (r.includes("IRFEL"))      return "irfel";
+    if (r.includes("FARM DEMO"))  return "fdh";
+    return "chambre";
+  }
+
+  function computeAndRenderNearest() {
+    if (!selectedPoint) return;
+    const pool = filtered().filter(s => s.lat != null && s.lon != null);
+    if (pool.length === 0) {
+      resultsEl.innerHTML = '<div class="nearest-error">Aucune station ne correspond aux filtres actifs. Reinitialise les filtres pour voir toutes les stations.</div>';
+      resultsEl.classList.add("show");
+      return;
+    }
+    const withDist = pool.map(s => ({
+      nom: s.nom, region: s.region, filiere: s.filiere, reseaux: s.reseaux, lat: s.lat, lon: s.lon,
+      dist: distanceKm(selectedPoint.lat, selectedPoint.lon, s.lat, s.lon)
+    })).sort((a, b) => a.dist - b.dist).slice(0, 5);
+
+    resultsEl.innerHTML =
+      '<div class="nearest-results-hdr">5 stations les plus proches de ' + selectedPoint.label + ' (a vol d\\'oiseau) :</div>' +
+      withDist.map((s, i) => {
+        const tags = s.reseaux.split("\\n").map(r => r.trim()).filter(Boolean)
+          .map(r => SVGS[reseauKeyLocal(r)]).join("");
+        return '<div class="nearest-card" data-lat="' + s.lat + '" data-lon="' + s.lon + '">' +
+          '<div class="nearest-card-rank">' + (i + 1) + '</div>' +
+          '<div class="nearest-card-body">' +
+            '<div class="nearest-card-name">' + tags + '<span>' + s.nom + '</span></div>' +
+            '<div class="nearest-card-meta">' + s.region + ' - ' + s.filiere + '</div>' +
+          '</div>' +
+          '<div class="nearest-card-dist">' + s.dist.toFixed(1) + ' km</div>' +
+        '</div>';
+      }).join("");
+    resultsEl.classList.add("show");
+
+    resultsEl.querySelectorAll(".nearest-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const lat = parseFloat(card.dataset.lat);
+        const lon = parseFloat(card.dataset.lon);
+        if (map) {
+          map.flyTo([lat, lon], 9, { duration: 0.6 });
+          const found = markers.find(x => Math.abs(x.s.lat - lat) < 1e-5 && Math.abs(x.s.lon - lon) < 1e-5);
+          if (found) found.m.openPopup();
+        }
+      });
+    });
+
+    if (map) {
+      const allPoints = [[selectedPoint.lat, selectedPoint.lon]].concat(withDist.map(s => [s.lat, s.lon]));
+      map.flyToBounds(L.latLngBounds(allPoints), { padding: [50, 50], maxZoom: 9, duration: 0.6 });
+      if (window.__startMarker) map.removeLayer(window.__startMarker);
+      const startIcon = L.divIcon({
+        className: "start-marker",
+        html: '<div style="width:20px;height:20px;border-radius:50%;background:#1a1a1a;border:3px solid white;box-shadow:0 0 0 1.5px #1a1a1a"></div>',
+        iconSize: [26,26], iconAnchor: [13,13]
+      });
+      window.__startMarker = L.marker([selectedPoint.lat, selectedPoint.lon], { icon: startIcon, zIndexOffset: 1000 })
+        .addTo(map).bindPopup('<b>Point de depart</b><br>' + selectedPoint.label).openPopup();
+    }
+  }
+
+  inputEl.addEventListener("input", e => {
+    const q = e.target.value.trim();
+    selectedPoint = null;
+    activeIdx = -1;
+    clearTimeout(debounceTimer);
+    if (q.length < 3) { suggestEl.classList.remove("show"); return; }
+    debounceTimer = setTimeout(async () => {
+      const res = await fetchSuggestions(q);
+      if (res === null) {
+        suggestEl.innerHTML = '<div class="nearest-error" style="padding:.55rem .85rem">Erreur de connexion a l\\'API d\\'adresses. Reessaye dans un instant.</div>';
+        suggestEl.classList.add("show");
+        return;
+      }
+      suggestions = res;
+      renderSuggestions();
+    }, 250);
+  });
+
+  inputEl.addEventListener("keydown", e => {
+    if (!suggestEl.classList.contains("show")) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, suggestions.length - 1); renderSuggestions(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); renderSuggestions(); }
+    else if (e.key === "Enter") { e.preventDefault(); if (activeIdx >= 0) selectSuggestion(activeIdx); else if (suggestions.length > 0) selectSuggestion(0); }
+    else if (e.key === "Escape") { suggestEl.classList.remove("show"); }
+  });
+
+  document.addEventListener("click", e => {
+    if (!inputEl.contains(e.target) && !suggestEl.contains(e.target)) {
+      suggestEl.classList.remove("show");
+    }
+  });
+})();
+
+render();
+}
+</script>
+</body>
+</html>
