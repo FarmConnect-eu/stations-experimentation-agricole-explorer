@@ -498,7 +498,7 @@ function render() {
     })).sort((a, b) => a.dist - b.dist).slice(0, 5);
 
     resultsEl.innerHTML =
-      '<div class="nearest-results-hdr">5 stations les plus proches de ' + selectedPoint.label + ' (a vol d\\'oiseau) :</div>' +
+      '<div class="nearest-results-hdr">5 stations les plus proches de ' + selectedPoint.label + ' (a vol d\'oiseau) :</div>' +
       withDist.map((s, i) => {
         const tags = s.reseaux.split("\\n").map(r => r.trim()).filter(Boolean)
           .map(r => SVGS[reseauKeyLocal(r)]).join("");
@@ -548,7 +548,7 @@ function render() {
     debounceTimer = setTimeout(async () => {
       const res = await fetchSuggestions(q);
       if (res === null) {
-        suggestEl.innerHTML = '<div class="nearest-error" style="padding:.55rem .85rem">Erreur de connexion a l\\'API d\\'adresses. Reessaye dans un instant.</div>';
+        suggestEl.innerHTML = '<div class="nearest-error" style="padding:.55rem .85rem">Erreur de connexion a l\'API d\'adresses. Reessaye dans un instant.</div>';
         suggestEl.classList.add("show");
         return;
       }
