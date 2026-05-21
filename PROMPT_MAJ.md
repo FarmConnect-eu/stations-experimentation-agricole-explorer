@@ -103,7 +103,7 @@ Si je te demande d'ajouter un nouveau reseau (ex: "ajoute le reseau Reseau Mixte
 ## Reference
 
 Le repo de la version courante (remplace par l'URL de ton fork si different) :
-https://github.com/USER/stations-experimentation-agricole-explorer
+https://github.com/FarmConnect-eu/stations-experimentation-agricole-explorer
 
 Le script Python existant qui fait deja tout ca :
 `scripts/update_data.py` dans ce repo. **Lance-le en priorite si tu n'as aucune raison de tout refaire** :
